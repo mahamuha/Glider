@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Glider</title>
+    <!-- Import custom font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Arial&display=swap" rel="stylesheet">
+
+    <!-- Internal styles for layout and visual appearance -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: url("/static/techno_bg.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .welcome {
+            margin-bottom: 20px;
+        }
+
+        .logout {
+            color: #58d68d;
+            text-decoration: none;
+        }
+
+        form, ul {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #58d68d;
+            color: black;
+            cursor: pointer;
+        }
+
+        input, select {
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        img {
+            max-width: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #58d68d;
+        }
+
+        .error {
+            color: #ff7b7b;
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Welcome message showing current username -->
+    <h1>🌿 Glider — Добро пожаловать, {{ current_user.username }}</h1>
+
+    <!-- Logout link -->
+    <div class="welcome">
+        <a href="/logout" class="logout">Выйти</a>
+    </div>
+
+    <!-- Display error message if exists -->
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <!-- Form to create a new task group -->
+    <h2>Создать новую группу задач</h2>
+    <form action="/create-group" method="post">
+        <input type="text" name="name" placeholder="Название группы" required>
+        <button type="submit">Создать</button>
+    </form>
+
+    <!-- Form to select a group from existing ones -->
+    <form method="get" action="/">
+        <label for="group-select">Выбрать группу:</label>
+        <select name="group_id" id="group-select" onchange="this.form.submit()">
+            <option value="" {% if not selected_group %}selected{% endif %}>Персональные задачи</option>
+            {% for group in groups %}
+                <option value="{{ group.id }}" {% if selected_group and group.id == selected_group.id %}selected{% endif %}>
+                    {{ group.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if selected_group %}
+        <!-- Form to set a goal for the selected group -->
+        <form action="/set-group-goal" method="post">
+            <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+            <label>Цель задач для группы:</label>
+            <input type="number" name="goal" min="1" value="{{ selected_group.goal or 3 }}">
+            <button type="submit">Сохранить</button>
+        </form>
+    {% else %}
+        <!-- Form to set a personal goal if no group is selected -->
+        <form action="/set-user-goal" method="post">
+            <label>Личная цель задач:</label>
+            <input type="number" name="goal" min="1" value="{{ current_user.goal or 1 }}">
+            <button type="submit">Сохранить</button>
+        </form>
+    {% endif %}
+
+    <!-- Form to add a new task (for group or personal) -->
+    <form action="/add-task" method="post">
+        <input type="text" name="title" placeholder="Новая задача" required>
+        <input type="hidden" name="group_id" value="{{ selected_group.id if selected_group else '' }}">
+        <button type="submit">Добавить</button>
+    </form>
+
+    <!-- List of tasks with completion button -->
+    <ul>
+        {% for task in tasks %}
+        <li>
+            {{ task.title }} — Добавил:
+            {% for user in users %}
+                {% if user.id == task.user_id %}
+                    <strong>{{ user.username }}</strong>
+                {% endif %}
+            {% endfor %}
+            — Статус:
+            {% if task.completed %}
+                <em>Выполнена</em>
+            {% else %}
+                <form method="post" action="/complete-task/{{ task.id }}" style="display:inline;">
+                    <button type="submit">Завершить</button>
+                </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Visual plant growth indicator based on goal completion -->
+    <img src="/static/{{ plant_image }}" alt="Этап роста растения">
+    <p>
+        {% if plant_growth >= 100 %}
+            Поздравляем! Цель выполнена! 🎉
+        {% else %}
+            Прогресс роста: {{ plant_growth }}%
+        {% endif %}
+    </p>
+
+</div>
+</body>
+</html>
